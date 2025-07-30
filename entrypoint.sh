@@ -16,4 +16,10 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "Iniciando aplicação AdonisJS..."
-exec node build/bin/server.js
+
+if [ "$NODE_ENV" = "development" ]; then
+  exec npm run dev -- --poll
+else
+  npm run build
+  exec node build/bin/server.js
+fi
