@@ -1,24 +1,24 @@
 import router from '@adonisjs/core/services/router'
-import AuthController from '#controllers/auth_controller'
 import { middleware } from '#start/kernel';
-import TasksController from '#controllers/tasks_controller';
 
-const authController = new AuthController()
-const taskController = new TasksController()
+const AuthController = () => import('#controllers/auth_controller')
+const TasksController = () => import('#controllers/tasks_controller')
 
-router.post('/auth/register', authController.register)
-router.post('/auth/login', authController.login)
-router.post('/auth/refresh', authController.refresh)
+router.post('/auth/register', [AuthController, 'register'])
+router.post('/auth/login', [AuthController, 'login'])
+router.post('/auth/refresh', [AuthController, 'refresh'])
 
 router.group(
   () => {
-    router.post('/auth/logout', authController.logout)
-    router.get('/me', authController.me)
-    router.post('/tasks', taskController.create)
-    router.get('/tasks', taskController.index)
-    router.get('/tasks/:id', taskController.show)
-    router.delete('/tasks/:id', taskController.destroy)
-    router.put('/tasks/:id', taskController.update)
-    router.patch('/tasks/:id', taskController.patch)
+    router.post('/auth/logout', [AuthController, 'logout'])
+    router.get('/auth/me', [AuthController, 'me'])
+
+    router.post('/tasks', [TasksController, 'create'])
+    router.get('/tasks', [TasksController, 'index'])
+    router.get('/tasks/:id', [TasksController, 'show'])
+    router.delete('/tasks/:id', [TasksController, 'destroy'])
+    router.put('/tasks/:id', [TasksController, 'update'])
+    router.patch('/tasks/:id', [TasksController, 'patch'])
+    
   }
 ).use(middleware.jwtAuth())
