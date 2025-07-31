@@ -24,9 +24,6 @@ export default class AuthService {
         const accessOptions: SignOptions = {expiresIn: this.accessTokenExpiresIn, jwtid: sessionId}
         const refreshOptions: SignOptions = {expiresIn: this.refreshTokenExpiresIn, jwtid: sessionId}
 
-        console.log(`expiresIn: ${this.refreshTokenExpiresIn}`)
-        console.log(`expiresIn: ${this.accessTokenExpiresIn}`)
-
         const accessToken = jwt.sign(payload, this.jwtSecret, accessOptions)
         const refreshToken = jwt.sign(payload, this.jwtSecret, refreshOptions)
 
