@@ -20,6 +20,13 @@ echo "Iniciando aplicação AdonisJS..."
 if [ "$NODE_ENV" = "development" ]; then
   exec npm run dev -- --poll
 else
+  node ace test
+
+  if [ $? -ne 0 ]; then
+    echo "Falha nos testes! Encerrando o contêiner."
+    exit 1
+  fi
+
   npm run build
 
   if node build/ace docs:generate || node ace docs:generate; then
