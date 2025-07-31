@@ -14,6 +14,7 @@ export default class Task extends BaseModel {
   declare description: string
 
   @column()
+  // @enum(pending, completed)
   declare status: 'pending' | 'completed'
 
   @column.dateTime({ autoCreate: true })
