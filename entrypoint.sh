@@ -21,5 +21,16 @@ if [ "$NODE_ENV" = "development" ]; then
   exec npm run dev -- --poll
 else
   npm run build
+
+  if node build/ace docs:generate || node ace docs:generate; then
+    if [ -f swagger.yaml ]; then 
+      mv swagger.yaml swagger.yml; 
+    fi
+    cp swagger.yml build/swagger.yml
+
+  else
+    echo "ATENÇÃO: não foi possível gerar swagger.yml. /docs vai quebrar."
+  fi
+  
   exec node build/bin/server.js
 fi

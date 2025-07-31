@@ -1,5 +1,15 @@
 import router from '@adonisjs/core/services/router'
 import { middleware } from '#start/kernel';
+import swagger from "#config/swagger";
+import AutoSwagger from "adonis-autoswagger";
+
+router.get("/swagger", async () => {
+  return AutoSwagger.default.docs(router.toJSON(), swagger);
+});
+
+router.get("/docs", async () => {
+  return AutoSwagger.default.ui("/swagger", swagger);
+});
 
 const AuthController = () => import('#controllers/auth_controller')
 const TasksController = () => import('#controllers/tasks_controller')
