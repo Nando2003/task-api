@@ -16,4 +16,15 @@ export default {
   },
   authMiddlewares: ["jwtAuth"],
   persistAuthorization: true,
+  securitySchemes: {
+    BearerAuth: {
+      type: "http",
+      scheme: "bearer",
+      bearerFormat: "JWT",
+      description: "Write your_access_token here",
+    },
+    BasicAuth: {},
+    ApiKeyAuth: {},
+  },
+  defaultSecurityScheme: "BearerAuth",
 }

@@ -4,6 +4,11 @@ import { taskPatchValidator, taskValidator } from '#validators/task';
 import type { HttpContext } from '@adonisjs/core/http'
 
 export default class TasksController {
+  /**
+   * @create
+   * @requestBody { "title": "string", "description": "string", "status": "string" }
+   * @responseBody 201 - <Task>
+   */
   public async create({ request, response }: HttpContext) {
     const data = await request.all();
     const payload = await taskValidator.validate(data);
@@ -12,6 +17,10 @@ export default class TasksController {
     return response.created(task);
   }
 
+  /**
+   * @show
+   * @responseBody 200 - <Task>
+   */
   public async show({ request, response }: HttpContext) {
     const user = (request as any).user as User;
     const taskId = request.param('id');
@@ -24,12 +33,20 @@ export default class TasksController {
     return response.ok(task);
   }
 
+  /**
+   * @index
+   * @responseBody 200 - <Task[]>
+   */
   public async index({ request, response }: HttpContext) {
     const user = (request as any).user as User;
     const tasks = await Task.query().where('userId', user.id)
     return response.ok(tasks);
   }
 
+  /**
+   * @destroy
+   * @responseBody 204 - No Content
+   */
   public async destroy({ request, response }: HttpContext) {
     const user = (request as any).user as User;
     const taskId = request.param('id');
@@ -43,6 +60,11 @@ export default class TasksController {
     return response.noContent();
   }
 
+  /**
+   * @update
+   * @requestBody {"title": "string", "description": "string", "status": "string" }
+   * @responseBody 200 - <Task>
+   */
   public async update({ request, response }: HttpContext) {
     const user = (request as any).user as User;
     const taskId = request.param('id');
@@ -59,6 +81,11 @@ export default class TasksController {
     return response.ok(task);
   }
 
+  /**
+   * @patch
+   * @requestBody {"title": "string", "description": "string", "status": "string" }
+   * @responseBody 200 - <Task>
+   */
   public async patch({ request, response }: HttpContext) {
     const user = (request as any).user as User;
     const taskId = request.param('id');
