@@ -13,6 +13,7 @@ export default class extends BaseSchema {
         .inTable('users')
         .onDelete('CASCADE')
       
+      table.uuid('jti').notNullable().unique()
       table.string('token').notNullable().unique()
       table.timestamp('expires_at').notNullable()
       table.timestamps(true)

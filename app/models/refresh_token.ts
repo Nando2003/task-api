@@ -14,6 +14,9 @@ export default class RefreshToken extends BaseModel {
     @column()
     declare token: string
 
+    @column()
+    declare jti: string
+
     @column.dateTime({ columnName: 'expires_at' })
     declare expiresAt: DateTime
 

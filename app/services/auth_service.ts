@@ -1,13 +1,16 @@
 import RefreshToken from '#models/refresh_token'
 import User from '#models/user'
 import jwt, { Secret, SignOptions } from 'jsonwebtoken'
-import { DateTime, Duration } from 'luxon'
+import { DateTime } from 'luxon'
+import { v4 as uuidv4 } from 'uuid'
+
 
 interface TokenPayload {
   sub: number
   email: string
   iat: number
   exp: number
+  jti: string
 }
 
 export default class AuthService {
@@ -16,9 +19,13 @@ export default class AuthService {
     private static refreshTokenExpiresIn: SignOptions['expiresIn'] = process.env.REFRESH_TOKEN_EXPIRES_IN as SignOptions['expiresIn']
 
     public static async generateTokens(user: User): Promise<{ accessToken: string; refreshToken: string }> {
+        const sessionId = uuidv4()
         const payload = { sub: user.id, email: user.email }
-        const accessOptions: SignOptions = {expiresIn: this.accessTokenExpiresIn}
-        const refreshOptions: SignOptions = {expiresIn: this.refreshTokenExpiresIn}
+        const accessOptions: SignOptions = {expiresIn: this.accessTokenExpiresIn, jwtid: sessionId}
+        const refreshOptions: SignOptions = {expiresIn: this.refreshTokenExpiresIn, jwtid: sessionId}
+
+        console.log(`expiresIn: ${this.refreshTokenExpiresIn}`)
+        console.log(`expiresIn: ${this.accessTokenExpiresIn}`)
 
         const accessToken = jwt.sign(payload, this.jwtSecret, accessOptions)
         const refreshToken = jwt.sign(payload, this.jwtSecret, refreshOptions)
@@ -29,6 +36,7 @@ export default class AuthService {
         await RefreshToken.create({
             userId: user.id,
             token: refreshToken,
+            jti: sessionId,
             expiresAt: expiresAt,
         })
 
@@ -46,8 +54,9 @@ export default class AuthService {
         const hasEmail = typeof decoded.email === 'string'
         const hasIat = typeof decoded.iat === 'number'
         const hasExp = typeof decoded.exp === 'number'
+        const hasJti = typeof decoded.jti === 'string'
 
-        if (!hasSub || !hasEmail || !hasIat || !hasExp) {
+        if (!hasSub || !hasEmail || !hasIat || !hasExp || !hasJti) {
             throw new Error('Payload is missing required fields')
         }
 
@@ -68,8 +77,13 @@ export default class AuthService {
         return this.generateTokens(user)
     }
 
-    public static async revokeAll(userId: number) {
-        await RefreshToken.query().where('user_id', userId).delete()
+    public static async revokeAll(token: string) {
+        const { jti, sub } = jwt.decode(token) as any
+
+        await RefreshToken.query()
+            .where('user_id', sub)
+            .andWhere('jti', jti)
+            .delete()
     }
 }   
 

@@ -40,8 +40,9 @@ export default class AuthController {
     }
 
     public async logout({ request, response }: HttpContext) {
-        const user = (request as any).user as User;
-        await AuthService.revokeAll(user.id)
+        const header = request.header('Authorization')!
+        const token  = header.replace('Bearer ', '')
+        await AuthService.revokeAll(token)
         return response.noContent()
     }
 
