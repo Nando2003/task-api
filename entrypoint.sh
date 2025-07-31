@@ -19,6 +19,7 @@ echo "Iniciando aplicação AdonisJS..."
 
 if [ "$NODE_ENV" = "development" ]; then
   exec npm run dev -- --poll
+  
 else
   node ace test
 
@@ -30,9 +31,11 @@ else
   npm run build
 
   if node build/ace docs:generate || node ace docs:generate; then
+
     if [ -f swagger.yaml ]; then 
       mv swagger.yaml swagger.yml; 
     fi
+
     cp swagger.yml build/swagger.yml
 
   else

@@ -1,17 +1,12 @@
 import RefreshToken from '#models/refresh_token'
 import User from '#models/user'
 import AuthService from '#services/auth_service'
-import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 import { randomInt } from 'node:crypto'
 import { v4 as uuidv4 } from 'uuid'
 
 
-test.group('Auth Controller Functional Tests', (group) => {
-  group.each.setup(async () => {
-    await db.beginGlobalTransaction()
-    return () => db.rollbackGlobalTransaction()
-  })
+test.group('Auth Controller Functional Tests', () => {
 
   test('should register a new user', async ({ client, assert }) => {
     const email = `register${(uuidv4())}@example.com`
@@ -35,9 +30,9 @@ test.group('Auth Controller Functional Tests', (group) => {
     const user = await User.findBy('email', email)
     assert.isNotNull(user)
     assert.exists(user!.id)
-  })
+  });
 
-  test('should not register a user with duplicate email', async ({ client, assert }) => {
+  test('should not register a user with duplicate email', async ({ client }) => {
     const email = `duplicate${uuidv4()}@example.com`
     const password = 'password123'
 
@@ -74,7 +69,7 @@ test.group('Auth Controller Functional Tests', (group) => {
     assert.isString(responseBody.refreshToken)
   })
 
-  test('should not log in a user with invalid credentials', async ({ client, assert }) => {
+  test('should not log in a user with invalid credentials', async ({ client }) => {
     const email = `invalidlogin${uuidv4()}@example.com`
     const password = 'password123'
 
@@ -92,81 +87,81 @@ test.group('Auth Controller Functional Tests', (group) => {
   })
 
   test('should refresh access token with a valid refresh token', async ({ client, assert }) => {
-    const user = await User.create({ email: `refresh${uuidv4()}@example.com`, password: 'password123' })
-    const { refreshToken: oldRefreshToken } = await AuthService.generateTokens(user)
-
-    const response = await client.post('/auth/refresh').json({
-      refreshToken: oldRefreshToken,
+      const user = await User.create({ email: `refresh${uuidv4()}@example.com`, password: 'password123' })
+      const { refreshToken: oldRefreshToken } = await AuthService.generateTokens(user)
+  
+      const response = await client.post('/auth/refresh').json({
+        refreshToken: oldRefreshToken,
+      })
+  
+      response.assertStatus(200)
+      const responseBody = response.body()
+      assert.isString(responseBody.accessToken)
+      assert.isString(responseBody.refreshToken)
+  
+      const oldTokenExists = await RefreshToken.query().where('token', oldRefreshToken).first()
+      assert.isNull(oldTokenExists)
+  
+      const newRefreshToken = response.body().refreshToken
+      const newTokenExists = await RefreshToken.query().where('token', newRefreshToken).first()
+      assert.isNotNull(newTokenExists)
     })
-
-    response.assertStatus(200)
-    const responseBody = response.body()
-    assert.isString(responseBody.accessToken)
-    assert.isString(responseBody.refreshToken)
-
-    const oldTokenExists = await RefreshToken.query().where('token', oldRefreshToken).first()
-    assert.isNull(oldTokenExists)
-
-    const newRefreshToken = response.body().refreshToken
-    const newTokenExists = await RefreshToken.query().where('token', newRefreshToken).first()
-    assert.isNotNull(newTokenExists)
-  })
-
-  test('should not refresh access token with an invalid refresh token', async ({ client, assert }) => {
-    const response = await client.post('/auth/refresh').json({
-      refreshToken: 'invalid_token_string',
+  
+    test('should not refresh access token with an invalid refresh token', async ({ client }) => {
+      const response = await client.post('/auth/refresh').json({
+        refreshToken: 'invalid_token_string',
+      })
+  
+      response.assertStatus(401)
+      response.assertBodyContains({
+        message: 'Invalid refresh token',
+      })
     })
-
-    response.assertStatus(401)
-    response.assertBodyContains({
-      message: 'Invalid refresh token',
+  
+    test('should logout a user and revoke their token', async ({ client, assert }) => {
+      const user = await User.create({ email: `logout${randomInt(100)}@example.com`, password: 'password123' })
+      const { accessToken, refreshToken } = await AuthService.generateTokens(user)
+  
+      const response = await client.post('/auth/logout')
+        .header('Authorization', `Bearer ${accessToken}`)
+        .send()
+  
+      response.assertStatus(204)
+      const tokenExists = await RefreshToken.query().where('token', refreshToken).first()
+      assert.isNull(tokenExists)
     })
-  })
-
-  test('should logout a user and revoke their token', async ({ client, assert }) => {
-    const user = await User.create({ email: `logout${randomInt(100)}@example.com`, password: 'password123' })
-    const { accessToken, refreshToken } = await AuthService.generateTokens(user)
-
-    const response = await client.post('/auth/logout')
-      .header('Authorization', `Bearer ${accessToken}`)
-      .send()
-
-    response.assertStatus(204)
-    const tokenExists = await RefreshToken.query().where('token', refreshToken).first()
-    assert.isNull(tokenExists)
-  })
-
-  test('should get authenticated user details', async ({ client, assert }) => {
-    const user = await User.create({ email: `me${uuidv4()}@example.com`, password: 'password123' })
-    const { accessToken } = await AuthService.generateTokens(user)
-
-    const response = await client.get('/auth/me')
-      .header('Authorization', `Bearer ${accessToken}`)
-
-    response.assertStatus(200)
-    response.assertBodyContains({
-      id: user.id,
-      email: user.email,
+  
+    test('should get authenticated user details', async ({ client }) => {
+      const user = await User.create({ email: `me${uuidv4()}@example.com`, password: 'password123' })
+      const { accessToken } = await AuthService.generateTokens(user)
+  
+      const response = await client.get('/auth/me')
+        .header('Authorization', `Bearer ${accessToken}`)
+  
+      response.assertStatus(200)
+      response.assertBodyContains({
+        id: user.id,
+        email: user.email,
+      })
     })
-  })
-
-  test('should not get user details without authentication', async ({ client, assert }) => {
-    const response = await client.get('/auth/me')
-
-    response.assertStatus(401)
-    response.assertBodyContains({
-      message: 'Invalid or missing token',
+  
+    test('should not get user details without authentication', async ({ client }) => {
+      const response = await client.get('/auth/me')
+  
+      response.assertStatus(401)
+      response.assertBodyContains({
+        message: 'Invalid or missing token',
+      })
     })
-  })
-
-  test('should not get user details with invalid token', async ({ client, assert }) => {
-    const response = await client.get('/auth/me')
-      .header('Authorization', 'Bearer invalid_jwt_token')
-
-    response.assertStatus(401)
-    response.assertBodyContains({
-      message: 'Invalid or expired token',
+  
+    test('should not get user details with invalid token', async ({ client }) => {
+      const response = await client.get('/auth/me')
+        .header('Authorization', 'Bearer invalid_jwt_token')
+  
+      response.assertStatus(401)
+      response.assertBodyContains({
+        message: 'Invalid or expired token',
+      })
     })
-  })
 
 })
